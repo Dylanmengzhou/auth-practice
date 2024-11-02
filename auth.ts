@@ -35,7 +35,7 @@ declare module "next-auth/jwt" {
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
   pages: {
-    signIn:"/auth/login"
+    signIn: "/auth/login",
   },
   events: {
     async linkAccount({ user }) {
@@ -50,6 +50,22 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     },
   },
   callbacks: {
+    async signIn({ user, account }) {
+      // Allow OAuth without email verification
+      if (account?.provider !== "credentials") {
+        return true;
+      }
+
+      const existingUser = await getUserById(user.id);
+
+      // Prevent sign in without email verification
+      if (!existingUser?.emailVerified) {
+        return false;
+      }
+
+      // Todo: Add 2FA check
+      return true;
+    },
     async session({ token, session }) {
       console.log({
         token_from_session: token,

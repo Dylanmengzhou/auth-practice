@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import * as z from "zod";
 import { getUserByEmail } from "@/data/user";
+import { generateVerificationToken } from "@/lib/token";
+import { sendVerificationEmail } from "@/lib/mail";
+
 export const register = async (values: z.infer<typeof RegisterSchema>) => {
   const validatedFields = RegisterSchema.safeParse(values);
 
@@ -15,7 +18,7 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
   const hashedPassword = await bcrypt.hash(password, 10);
 
   // check if we have existing user
-  const existingUser = await getUserByEmail(email)
+  const existingUser = await getUserByEmail(email);
 
   console.log(existingUser);
 
@@ -31,7 +34,10 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
     },
   });
 
-  // Todo: Send varification token email
+  const verificationToken = await generateVerificationToken(email);
 
-  return { success: "User created!" };
+  // Todo: Send varification token email
+  await sendVerificationEmail(verificationToken.email, verificationToken.token);
+
+  return { success: "Confirmation email sent!" };
 };
