@@ -20,8 +20,6 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
   // check if we have existing user
   const existingUser = await getUserByEmail(email);
 
-  console.log(existingUser);
-
   if (existingUser) {
     return { error: "Email is already registered!" };
   }
@@ -36,7 +34,7 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
 
   const verificationToken = await generateVerificationToken(email);
 
-  // Todo: Send varification token email
+  // TODO: Send varification token email
   await sendVerificationEmail(verificationToken.email, verificationToken.token);
 
   return { success: "Confirmation email sent!" };
