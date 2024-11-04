@@ -25,9 +25,7 @@ export const NewVerificationForm = () => {
         setSuccess(data.success);
         setError(data.error);
       })
-      .catch(() => {
-        setError("Something went wrong!");
-      });
+      .catch(() => {});
   }, [token]);
 
   useEffect(() => {

@@ -1,37 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import NextAuth, { type DefaultSession } from "next-auth";
+import NextAuth from "next-auth";
 
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import authConfig from "./auth.config";
 import { getUserById } from "./data/user";
 import { db } from "./lib/db";
-import { JWT } from "next-auth/jwt";
-import { UserRole } from "@prisma/client";
-
-declare module "next-auth" {
-  /**
-   * Returned by `auth`, `useSession`, `getSession` and received as a prop on the `SessionProvider` React Context
-   */
-  interface Session {
-    user: {
-      /** The user's postal address. */
-      role: "ADMIN" | "USER";
-      /**
-       * By default, TypeScript merges new interface properties and overwrites existing ones.
-       * In this case, the default session user properties will be overwritten,
-       * with the new ones defined above. To keep the default session user properties,
-       * you need to add them back into the newly declared interface.
-       */
-    } & DefaultSession["user"];
-  }
-}
-declare module "next-auth/jwt" {
-  /** Returned by the `jwt` callback and `auth`, when using JWT sessions */
-  interface JWT {
-    /** OpenID ID Token */
-    role: "ADMIN" | "USER";
-  }
-}
+import { getTwoFactorConfirmationByUserId } from "./data/two-factor-confirmation";
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
   pages: {
@@ -56,7 +29,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         return true;
       }
 
-      const existingUser = await getUserById(user.id);
+      const existingUser = await getUserById(user.id as string);
 
       // Prevent sign in without email verification
       if (!existingUser?.emailVerified) {
@@ -64,6 +37,20 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       }
 
       // TODO: Add 2FA check
+      if (existingUser.isTwoFactorEnabled) {
+        const twoFactorConfirmation = await getTwoFactorConfirmationByUserId(
+          existingUser.id
+        );
+        if (!twoFactorConfirmation) {
+          return false;
+        }
+        // TODO: Delete two factor confirmation for every sign in
+        await db.twoFactorConfirmation.delete({
+          where: {
+            id: twoFactorConfirmation.id,
+          },
+        });
+      }
       return true;
     },
     async session({ token, session }) {
@@ -72,7 +59,13 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       }
 
       if (token.role && session.user) {
-        session.user.role = token.role;
+        return {
+          ...session,
+          user: {
+            ...session.user,
+            role: token.role,
+          },
+        };
       }
       return session;
     },
