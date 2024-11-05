@@ -25,7 +25,7 @@ import Link from "next/link";
 
 export const LoginForm = () => {
   const searchParams = useSearchParams();
-
+  const callbackUrl = searchParams.get("callbackUrl");
   const urlError =
     searchParams.get("error") === "OAuthAccountNotLinked"
       ? "Email already use in with different providers!"
@@ -47,7 +47,7 @@ export const LoginForm = () => {
     setError("");
     setSuccess("");
     startTransition(() => {
-      login(values).then((data) => {
+      login(values, callbackUrl).then((data) => {
         if (data?.error) {
           form.reset();
           setError(data.error);
@@ -138,7 +138,9 @@ export const LoginForm = () => {
                         asChild
                         className=" px-0 font-normal"
                       >
-                        <Link href={"/auth/reset"}>Forgot password?</Link>
+                        <Link href={"/auth/reset"}>
+                          Forgot password?
+                        </Link>
                       </Button>
                       <FormMessage />
                     </FormItem>
@@ -149,7 +151,11 @@ export const LoginForm = () => {
           </div>
           <FormError message={error || urlError} />
           <FormSuccess message={success} />
-          <Button type="submit" className=" w-full" disabled={isPending}>
+          <Button
+            type="submit"
+            className=" w-full"
+            disabled={isPending}
+          >
             {showTwoFactor ? "Comfirm" : "Login"}
           </Button>
         </form>
